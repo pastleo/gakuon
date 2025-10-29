@@ -442,19 +442,21 @@ export function MediaPlayer() {
           ref={fullscreenContainerRef}
           className={isFullscreen ? "flex-1 relative bg-black" : "rounded-lg overflow-hidden relative"}
         >
-          {/* Fullscreen exit button */}
-          {isFullscreen && (
-            <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-              <Button
-                onClick={toggleFullscreen}
-                size="lg"
-                variant="secondary"
-                className="opacity-80 hover:opacity-100 transition-all duration-300"
-              >
+          {/* Fullscreen toggle button */}
+          <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+            <Button
+              onClick={toggleFullscreen}
+              size="lg"
+              variant="secondary"
+              className="opacity-80 hover:opacity-100 transition-all duration-300"
+            >
+              {isFullscreen ? (
                 <Minimize className="h-5 w-5" />
-              </Button>
-            </div>
-          )}
+              ) : (
+                <Maximize className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
 
           <div className={isFullscreen ? "h-full w-full" : ""}>
             <YouTube
