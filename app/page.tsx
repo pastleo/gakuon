@@ -19,12 +19,12 @@ export default function HomePage() {
               <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-balance">Gakuon</h2>
               <p className="text-xl md:text-2xl text-muted-foreground text-pretty">
                 {
-                  "Your modern media player for the web. Stream, play, and enjoy content with powerful playback controls."
+                  "Learn while you listen. Transform your YouTube playlists into powerful learning sessions with flashcards between videos."
                 }
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
-              <div className="text-sm text-muted-foreground">{"Built for creators and enthusiasts"}</div>
+              <div className="text-sm text-muted-foreground">{"Perfect for language learners, music students, and visual thinkers"}</div>
             </div>
           </div>
 

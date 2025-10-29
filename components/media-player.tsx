@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Play, Maximize, Minimize, PictureInPicture } from "lucide-react"
+import { Play, Maximize, Minimize } from "lucide-react"
 import YouTube, { YouTubeProps } from "react-youtube"
 
 // Flashcard and Deck types
@@ -128,13 +128,11 @@ export function MediaPlayer() {
   const [frontDuration, setFrontDuration] = useState([5])
   const [backDuration, setBackDuration] = useState([5])
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [isPiP, setIsPiP] = useState(false)
   const [interactionMode, setInteractionMode] = useState(false)
   const playerRef = useRef<any>(null)
   const flashcardTimerRef = useRef<NodeJS.Timeout | null>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
   const interactionModeTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const pipWindowRef = useRef<Window | null>(null)
 
   const handlePlay = () => {
     const info = extractYouTubeInfo(url)
@@ -303,82 +301,6 @@ export function MediaPlayer() {
     }
   }
 
-  const togglePictureInPicture = async () => {
-    if (!fullscreenContainerRef.current) return
-
-    try {
-      // Check if Document Picture-in-Picture API is supported
-      if (!('documentPictureInPicture' in window)) {
-        console.error('Document Picture-in-Picture API is not supported in this browser')
-        alert('Document Picture-in-Picture is not supported in your browser. Please use Chrome 116+ or Edge 116+')
-        return
-      }
-
-      const docPiP = (window as any).documentPictureInPicture
-
-      // Check if already in PiP mode
-      if (docPiP.window) {
-        // Exit PiP by closing the window
-        docPiP.window.close()
-        pipWindowRef.current = null
-        setIsPiP(false)
-        return
-      }
-
-      // Enter Picture-in-Picture mode
-      const pipWindow = await docPiP.requestWindow({
-        width: 800,
-        height: 600,
-      })
-
-      pipWindowRef.current = pipWindow
-
-      // Copy all stylesheets from the main document to the PiP window
-      const allCSS = [...document.styleSheets]
-        .map((styleSheet) => {
-          try {
-            return [...styleSheet.cssRules]
-              .map((rule) => rule.cssText)
-              .join('')
-          } catch (e) {
-            // Handle cross-origin stylesheets
-            const link = document.createElement('link')
-            link.rel = 'stylesheet'
-            link.href = styleSheet.href || ''
-            pipWindow.document.head.appendChild(link)
-            return ''
-          }
-        })
-        .filter(Boolean)
-        .join('\n')
-
-      const style = pipWindow.document.createElement('style')
-      style.textContent = allCSS
-      pipWindow.document.head.appendChild(style)
-
-      // Clone and append the player container to the PiP window
-      const playerContainer = fullscreenContainerRef.current.cloneNode(true) as HTMLElement
-      pipWindow.document.body.appendChild(playerContainer)
-
-      // Add some basic styling to the PiP window body
-      pipWindow.document.body.style.margin = '0'
-      pipWindow.document.body.style.padding = '0'
-      pipWindow.document.body.style.overflow = 'hidden'
-      pipWindow.document.body.style.backgroundColor = '#000'
-
-      setIsPiP(true)
-
-      // Handle window close
-      pipWindow.addEventListener('pagehide', () => {
-        pipWindowRef.current = null
-        setIsPiP(false)
-      })
-
-    } catch (error) {
-      console.error('Error toggling Picture-in-Picture:', error)
-      alert(`Failed to open Picture-in-Picture: ${error}`)
-    }
-  }
 
   // Build player options dynamically based on content type
   const opts: YouTubeProps['opts'] = {
@@ -488,16 +410,10 @@ export function MediaPlayer() {
                 {"Play"}
               </Button>
               {isPlaying && (videoId || playlistId) && (
-                <>
-                  <Button onClick={togglePictureInPicture} size="lg" variant="outline" title="Enter Picture-in-Picture">
-                    <PictureInPicture className="mr-2 h-5 w-5" />
-                    Enter Picture-in-Picture
-                  </Button>
-                  <Button onClick={toggleFullscreen} size="lg" variant="outline" title="Enter Fullscreen">
-                    <Maximize className="mr-2 h-5 w-5" />
-                    Enter Fullscreen
-                  </Button>
-                </>
+                <Button onClick={toggleFullscreen} size="lg" variant="outline" title="Enter Fullscreen">
+                  <Maximize className="mr-2 h-5 w-5" />
+                  Enter Fullscreen
+                </Button>
               )}
             </div>
 
