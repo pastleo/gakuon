@@ -90,6 +90,7 @@ export function MediaPlayer() {
   const [backDuration, setBackDuration] = useState([5])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [interactionMode, setInteractionMode] = useState(false)
+  const [currentVideoTitle, setCurrentVideoTitle] = useState<string | null>(null)
   const playerRef = useRef<any>(null)
   const flashcardTimerRef = useRef<NodeJS.Timeout | null>(null)
   const fullscreenContainerRef = useRef<HTMLDivElement>(null)
@@ -183,6 +184,20 @@ export function MediaPlayer() {
     }
   }, [])
 
+  // Update document title when video changes
+  useEffect(() => {
+    if (currentVideoTitle) {
+      document.title = `${currentVideoTitle} - Gakuon`
+    } else {
+      document.title = 'Gakuon'
+    }
+
+    // Reset title on unmount
+    return () => {
+      document.title = 'Gakuon'
+    }
+  }, [currentVideoTitle])
+
   // Handle fullscreen changes (e.g., when user presses ESC)
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -232,6 +247,18 @@ export function MediaPlayer() {
     if (event.data === 1) {
       // Video is playing - mark that we've started
       setHasStartedPlaying(true)
+
+      // Update video title
+      if (playerRef.current) {
+        try {
+          const videoData = playerRef.current.getVideoData()
+          if (videoData && videoData.title) {
+            setCurrentVideoTitle(videoData.title)
+          }
+        } catch (error) {
+          console.error('Error getting video data:', error)
+        }
+      }
     } else if (event.data === -1 && hasStartedPlaying && !interactionMode) {
       // Unstarted state after we've been playing = transition between videos in playlist
       // Only show flashcard if not in interaction mode (prevents showing on manual video changes)
