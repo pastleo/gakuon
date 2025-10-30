@@ -60,66 +60,27 @@ const mockDecks: Deck[] = [
   }
 ]
 
-// Extract YouTube video ID and/or playlist ID from various URL formats
-function extractYouTubeInfo(url: string): { videoId: string | null; playlistId: string | null; type: 'video' | 'playlist' | null } {
-  if (!url) return { videoId: null, playlistId: null, type: null }
+// Extract YouTube playlist ID and optional starting video ID from various URL formats
+// Only playlists are supported by this player
+function extractYouTubePlaylistInfo(url: string): { playlistId: string | null; videoId: string | null } {
+  if (!url) return { playlistId: null, videoId: null }
 
-  let videoId: string | null = null
-  let playlistId: string | null = null
+  try {
+    const urlObj = new URL(url)
+    const playlistId = urlObj.searchParams.get('list')
+    const videoId = urlObj.searchParams.get('v')
 
-  // Extract playlist ID if present
-  const playlistMatch = url.match(/[?&]list=([^&]+)/)
-  if (playlistMatch) {
-    playlistId = playlistMatch[1]
+    return { playlistId, videoId }
+  } catch {
+    // Invalid URL, return null values
+    return { playlistId: null, videoId: null }
   }
-
-  // Check if this is a playlist-only URL
-  if (url.includes('/playlist?') && playlistId) {
-    return { videoId: null, playlistId, type: 'playlist' }
-  }
-
-  // Regular YouTube URLs: https://www.youtube.com/watch?v=VIDEO_ID
-  const standardMatch = url.match(/[?&]v=([^&]+)/)
-  if (standardMatch) {
-    videoId = standardMatch[1]
-  }
-
-  // Short YouTube URLs: https://youtu.be/VIDEO_ID
-  if (!videoId) {
-    const shortMatch = url.match(/youtu\.be\/([^?]+)/)
-    if (shortMatch) videoId = shortMatch[1]
-  }
-
-  // Embedded URLs: https://www.youtube.com/embed/VIDEO_ID
-  if (!videoId) {
-    const embedMatch = url.match(/youtube\.com\/embed\/([^?]+)/)
-    if (embedMatch) videoId = embedMatch[1]
-  }
-
-  // If it's just the video ID (11 characters)
-  if (!videoId && /^[a-zA-Z0-9_-]{11}$/.test(url.trim())) {
-    videoId = url.trim()
-  }
-
-  // Determine type
-  let type: 'video' | 'playlist' | null = null
-  if (playlistId && videoId) {
-    type = 'playlist' // Video within a playlist
-  } else if (videoId) {
-    type = 'video'
-  } else if (playlistId) {
-    type = 'playlist'
-  }
-
-  return { videoId, playlistId, type }
 }
 
 export function MediaPlayer() {
   const [url, setUrl] = useState("")
   const [isPlaying, setIsPlaying] = useState(false)
-  const [videoId, setVideoId] = useState<string | null>(null)
   const [playlistId, setPlaylistId] = useState<string | null>(null)
-  const [contentType, setContentType] = useState<'video' | 'playlist' | null>(null)
   const [selectedDeckId, setSelectedDeckId] = useState<string>(mockDecks[0].id)
   const [showingFlashcard, setShowingFlashcard] = useState(false)
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
@@ -135,20 +96,15 @@ export function MediaPlayer() {
   const interactionModeTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const handlePlay = () => {
-    const info = extractYouTubeInfo(url)
+    const info = extractYouTubePlaylistInfo(url)
 
-    // Only allow playlists
     if (info.playlistId) {
-      setVideoId(info.videoId)
       setPlaylistId(info.playlistId)
-      setContentType('playlist')
       setIsPlaying(true)
       setHasStartedPlaying(false) // Reset flag on new playback
     } else {
       // Not a playlist - show error
-      setVideoId(null)
       setPlaylistId(null)
-      setContentType(null)
       setIsPlaying(true) // Set to true to show error message
     }
   }
@@ -247,7 +203,7 @@ export function MediaPlayer() {
       if (
         event.key === 'f' &&
         isPlaying &&
-        (videoId || playlistId) &&
+        playlistId &&
         event.target instanceof HTMLElement &&
         !['INPUT', 'TEXTAREA'].includes(event.target.tagName)
       ) {
@@ -261,7 +217,7 @@ export function MediaPlayer() {
     return () => {
       document.removeEventListener('keydown', handleKeyPress)
     }
-  }, [isPlaying, videoId, playlistId])
+  }, [isPlaying, playlistId])
 
   const onPlayerStateChange = (event: any) => {
     console.log('Player state:', event.data)
@@ -309,8 +265,8 @@ export function MediaPlayer() {
     playerVars: {
       autoplay: 1,
       fs: 0, // Disable YouTube's native fullscreen button
-      ...(playlistId && { list: playlistId }),
-      ...(playlistId && !videoId && { listType: 'playlist' }),
+      list: playlistId,
+      listType: 'playlist',
     },
   }
 
@@ -409,7 +365,7 @@ export function MediaPlayer() {
                 <Play className="mr-2 h-5 w-5" />
                 {"Play"}
               </Button>
-              {isPlaying && (videoId || playlistId) && (
+              {isPlaying && playlistId && (
                 <Button onClick={toggleFullscreen} size="lg" variant="outline" title="Enter Fullscreen">
                   <Maximize className="mr-2 h-5 w-5" />
                   Enter Fullscreen
@@ -437,7 +393,7 @@ export function MediaPlayer() {
       )}
 
       {/* YouTube Player - outside Card, shown in both modes */}
-      {isPlaying && (videoId || playlistId) && (
+      {isPlaying && playlistId && (
         <div
           ref={fullscreenContainerRef}
           className={isFullscreen ? "flex-1 relative bg-black" : "rounded-lg overflow-hidden relative"}
@@ -460,7 +416,6 @@ export function MediaPlayer() {
 
           <div className={isFullscreen ? "h-full w-full" : ""}>
             <YouTube
-              videoId={videoId || undefined}
               opts={opts}
               onReady={onReady}
               onStateChange={onPlayerStateChange}
